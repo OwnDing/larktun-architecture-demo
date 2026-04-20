@@ -34,11 +34,17 @@
 
   function highlightLoginEdges(clientKey) {
     const suffix = clientKey === "A" ? "a" : "b";
-    // 客户端 <-> SAAS（通过临时线，因为基础图中我们没画这条）
-    ensureTempEdge(`edge-${suffix}-saas`, state.positions[clientKey === "A" ? "clientA" : "clientB"], state.positions.saas, "active-login");
-    // 客户端 <-> 每个 HS
-    state.positions.hs.forEach((p, i) => {
-      ensureTempEdge(`edge-${suffix}-hs-${i}`, state.positions[clientKey === "A" ? "clientA" : "clientB"], p, "active-login");
+    const client = state.positions[clientKey === "A" ? "clientA" : "clientB"];
+    // 客户端 ↔ SAAS（身份认证链路）
+    ensureTempEdge(`edge-${suffix}-saas`, client, state.positions.saas, "active-login");
+    // 客户端 ↔ Gateway（Headscale 集群入口）
+    ensureTempEdge(`edge-${suffix}-gw`, client, state.positions.gateway, "active-login");
+    // SaaS ↔ Gateway 以及 Gateway ↔ 每个 HS（基础边高亮）
+    const saasGw = document.getElementById("edge-saas-gw");
+    if (saasGw) saasGw.classList.add("active-login");
+    state.positions.hs.forEach((_, i) => {
+      const e = document.getElementById(`edge-gw-hs-${i}`);
+      if (e) e.classList.add("active-login");
     });
   }
 
@@ -76,7 +82,7 @@
     if (state.loggedIn[c]) { setStatus(`客户端 ${c} 已登录`); return; }
     state.busy = true;
     setButtonsDisabled(true);
-    setStatus(`客户端 ${c} 发起登录：SAAS 验证 → 调用 Headscale gRPC → 下发 PreAuthKey…`);
+    setStatus(`客户端 ${c} 发起登录：SaaS 验证 → gRPC 请求 Headscale Gateway → 下发 PreAuthKey → 客户端注册`);
     setConnState("登录中…");
     await runLoginSequence(state, c);
     state.loggedIn[c] = true;

@@ -8,17 +8,28 @@
 
   function now() { return performance.now(); }
 
-  // 单次从 from 飞到 to 的数据包动画
-  function sendPacket({ from, to, color = "#5b8bff", duration = 700, size = 5, onDone, loop = false }) {
+  // 单次从 from 飞到 to 的数据包动画（可附带文字标签）
+  function sendPacket({ from, to, color = "#5b8bff", duration = 700, size = 5, label, onDone, loop = false }) {
     const layer = document.getElementById("layer-packets");
-    const circle = svgEl("circle", {
-      class: "packet", r: size, cx: from.x, cy: from.y,
-      fill: color, style: `color:${color}`,
+    const g = svgEl("g", {
+      class: "packet-g",
+      style: `color:${color}`,
+      transform: `translate(${from.x},${from.y})`,
     });
-    layer.appendChild(circle);
+    const circle = svgEl("circle", { class: "packet", r: size, cx: 0, cy: 0, fill: color });
+    g.appendChild(circle);
+    if (label) {
+      // 根据行进方向把标签放在合适的一侧，避免与目标节点的图标重叠
+      const dx = to.x - from.x;
+      const labelY = dx < -10 ? -12 : dx > 10 ? -12 : -14;
+      const t = svgEl("text", { class: "packet-label", x: 0, y: labelY });
+      t.textContent = label;
+      g.appendChild(t);
+    }
+    layer.appendChild(g);
     const p = {
-      el: circle, from, to, color, duration, loop,
-      start: now(), onDone, size,
+      el: g, from, to, color, duration, loop,
+      start: now(), onDone, size, label,
     };
     packets.push(p);
     if (!rafId) rafId = requestAnimationFrame(tick);
@@ -44,8 +55,7 @@
       }
       const x = p.from.x + (p.to.x - p.from.x) * progress;
       const y = p.from.y + (p.to.y - p.from.y) * progress;
-      p.el.setAttribute("cx", x);
-      p.el.setAttribute("cy", y);
+      p.el.setAttribute("transform", `translate(${x},${y})`);
     }
     updateFlowCount();
     if (packets.length > 0) rafId = requestAnimationFrame(tick);
@@ -90,26 +100,34 @@
     }, Promise.resolve());
   }
 
-  // 场景一：登录信令流
-  // client -> SAAS -> HS -> SAAS -> client -> HS -> client
+  // 场景一：登录信令流（A / B 共用同一套流程）
+  // client → SAAS → Gateway → HS → Gateway → SAAS → client
+  //        → Gateway → HS → Gateway → client
   function runLoginSequence(state, clientKey) {
     const pos = state.positions;
     const client = clientKey === "A" ? pos.clientA : pos.clientB;
     const saas = pos.saas;
-    // 随机挑一个 HS（保持一致性，这里选最接近客户端的）
+    const gw = pos.gateway;
+    // 集群内部由 Gateway 负载均衡到某台 HS（演示中挑中间那台）
     const hsIdx = Math.min(state.hsCount - 1, Math.floor(state.hsCount / 2));
     const hs = pos.hs[hsIdx];
 
-    const blue = "#5b8bff";
-    const green = "#22c55e";
+    const blue = "#5b8bff";       // 客户端登录/认证相关
+    const purple = "#a78bfa";     // SaaS → Gateway gRPC 请求
+    const orange = "#fbbf24";     // PreAuthKey 数据
+    const green = "#22c55e";      // 注册成功
 
     return playSequence([
-      { from: client, to: saas, color: blue, duration: 700 },
-      { from: saas, to: hs, color: blue, duration: 650 },
-      { from: hs, to: saas, color: blue, duration: 650 },
-      { from: saas, to: client, color: blue, duration: 700 },
-      { from: client, to: hs, color: blue, duration: 700 },
-      { from: hs, to: client, color: green, duration: 700 },
+      { from: client, to: saas,   color: blue,   duration: 700, label: "登录凭据" },
+      { from: saas,   to: gw,     color: purple, duration: 650, label: "gRPC · 请求 PreAuthKey" },
+      { from: gw,     to: hs,     color: purple, duration: 420, label: "转发" },
+      { from: hs,     to: gw,     color: orange, duration: 420, label: "PreAuthKey" },
+      { from: gw,     to: saas,   color: orange, duration: 650, label: "PreAuthKey" },
+      { from: saas,   to: client, color: orange, duration: 700, label: "下发 PreAuthKey" },
+      { from: client, to: gw,     color: blue,   duration: 700, label: "用 PreAuthKey 注册" },
+      { from: gw,     to: hs,     color: blue,   duration: 420, label: "转发" },
+      { from: hs,     to: gw,     color: green,  duration: 420, label: "注册成功" },
+      { from: gw,     to: client, color: green,  duration: 700, label: "登录完成" },
     ]);
   }
 

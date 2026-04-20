@@ -19,18 +19,24 @@
     laptop:
       '<rect x="5" y="5" width="14" height="9" rx="1.2" fill="none" stroke="#f59e0b" stroke-width="1.6"/>' +
       '<path d="M3 17h18l-1.3 2H4.3L3 17z" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-linejoin="round"/>',
+    gateway:
+      '<rect x="3" y="8" width="18" height="8" rx="1.6" fill="none" stroke="#a78bfa" stroke-width="1.6"/>' +
+      '<path d="M7 12h10" stroke="#a78bfa" stroke-width="1.4" stroke-linecap="round"/>' +
+      '<path d="M9 10l-2 2 2 2M15 10l2 2-2 2" stroke="#a78bfa" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
   };
 
   // 布局常量
   const LAYOUT = {
-    saas: { x: 400, y: 90 },
-    clientA: { x: 200, y: 580 },
-    clientB: { x: 600, y: 580 },
+    saas: { x: 410, y: 90 },
+    gateway: { x: 200, y: 190 },
+    clientA: { x: 200, y: 635 },
+    clientB: { x: 620, y: 635 },
     hsX: 200,
-    derpX: 600,
-    colTop: 190,
-    colBottom: 470,
-    slotSpacing: 72,
+    derpX: 620,
+    colTop: 275,
+    colBottom: 520,
+    slotSpacing: 60,
+    cluster: { x: 80, y: 140, w: 240, h: 420 },
   };
 
   // 按给定数量居中布局纵列
@@ -57,7 +63,7 @@
       transform: `translate(${-iconSize / 2}, ${-iconSize / 2 - 16}) scale(${iconSize / 24})`,
     });
     const iconType = {
-      saas: "cloud", hs: "server", derp: "router", client: "laptop",
+      saas: "cloud", hs: "server", derp: "router", client: "laptop", gateway: "gateway",
     }[type];
     iconG.innerHTML = ICONS[iconType];
     g.appendChild(iconG);
@@ -83,9 +89,11 @@
 
   // 根据状态重新渲染整体拓扑
   function render(state) {
+    const framesLayer = document.getElementById("layer-frames");
     const edgesLayer = document.getElementById("layer-edges");
     const halosLayer = document.getElementById("layer-halos");
     const nodesLayer = document.getElementById("layer-nodes");
+    framesLayer.innerHTML = "";
     edgesLayer.innerHTML = "";
     halosLayer.innerHTML = "";
     nodesLayer.innerHTML = "";
@@ -95,6 +103,7 @@
 
     const positions = {
       saas: { ...LAYOUT.saas },
+      gateway: { ...LAYOUT.gateway },
       clientA: { ...LAYOUT.clientA },
       clientB: { ...LAYOUT.clientB },
       hs: hsYs.map((y) => ({ x: LAYOUT.hsX, y })),
@@ -102,15 +111,29 @@
     };
     state.positions = positions;
 
-    // 基础连线（灰色虚线）—— SAAS 与各 HS / DERP
+    // Headscale 集群边框 + 标题（放在最底层）
+    const cf = LAYOUT.cluster;
+    framesLayer.appendChild(svgEl("rect", {
+      class: "cluster-frame",
+      x: cf.x, y: cf.y, width: cf.w, height: cf.h, rx: 14, ry: 14,
+    }));
+    const title = svgEl("text", { class: "cluster-title", x: cf.x + cf.w / 2, y: cf.y - 6 });
+    title.textContent = "Headscale 集群";
+    framesLayer.appendChild(title);
+
+    // 基础连线（灰色虚线）
+    // SAAS ↔ Gateway（SaaS 只与 Gateway 通信）
+    edgesLayer.appendChild(createEdge(positions.saas.x, positions.saas.y, positions.gateway.x, positions.gateway.y, "edge-saas-gw"));
+    // Gateway ↔ 每个 HS（集群内部）
     positions.hs.forEach((p, i) => {
-      edgesLayer.appendChild(createEdge(positions.saas.x, positions.saas.y, p.x, p.y, `edge-saas-hs-${i}`));
+      edgesLayer.appendChild(createEdge(positions.gateway.x, positions.gateway.y, p.x, p.y, `edge-gw-hs-${i}`));
     });
+    // SAAS ↔ 每个 DERP
     positions.derp.forEach((p, i) => {
       edgesLayer.appendChild(createEdge(positions.saas.x, positions.saas.y, p.x, p.y, `edge-saas-derp-${i}`));
     });
-    // 客户端到列尾第一个节点的提示线（淡）
-    edgesLayer.appendChild(createEdge(positions.clientA.x, positions.clientA.y - 24, positions.hs[positions.hs.length - 1].x, positions.hs[positions.hs.length - 1].y + 18, "edge-a-hslast"));
+    // 客户端提示线（淡）
+    edgesLayer.appendChild(createEdge(positions.clientA.x, positions.clientA.y - 24, positions.gateway.x, positions.gateway.y + 18, "edge-a-gw-hint"));
     edgesLayer.appendChild(createEdge(positions.clientB.x, positions.clientB.y - 24, positions.derp[positions.derp.length - 1].x, positions.derp[positions.derp.length - 1].y + 18, "edge-b-derplast"));
 
     // 光晕（登录后高亮）
@@ -125,6 +148,7 @@
 
     // 节点
     nodesLayer.appendChild(createNode({ x: positions.saas.x, y: positions.saas.y, type: "saas", label: "SAAS 控制网站", pillW: 108 }));
+    nodesLayer.appendChild(createNode({ x: positions.gateway.x, y: positions.gateway.y, type: "gateway", label: "Headscale Gateway", pillW: 128 }));
     positions.hs.forEach((p, i) => {
       nodesLayer.appendChild(createNode({ x: p.x, y: p.y, type: "hs", label: `HEADSCALE ${i + 1}`, pillW: 104 }));
     });
@@ -133,7 +157,6 @@
     });
     ["A", "B"].forEach((c) => {
       const p = c === "A" ? positions.clientA : positions.clientB;
-      // 登录状态文字
       const statusG = svgEl("g", { transform: `translate(${p.x}, ${p.y - 38})` });
       const st = svgEl("text", { class: `status-text ${state.loggedIn[c] ? "on" : "off"}`, x: 0, y: 0 });
       st.textContent = state.loggedIn[c] ? "已登录" : "未登录";
