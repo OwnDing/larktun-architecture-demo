@@ -60,26 +60,30 @@
 
     <!-- 控制面板 -->
     <section class="panel controls">
-      <div class="control-row">
+      <div class="control-row login-row">
         <label class="control-label">登录客户端</label>
         <div class="seg-toggle" id="client-toggle">
           <button class="seg active" data-client="A">A</button>
           <button class="seg" data-client="B">B</button>
         </div>
-        <label class="control-label">Headscale 节点</label>
-        <div class="slider-wrap">
-          <input type="range" id="hs-slider" min="1" max="5" value="3" />
-          <div class="count-box" id="hs-count">3</div>
-        </div>
+        <button class="btn btn-primary" id="btn-login">开始登录</button>
       </div>
 
-      <div class="control-row">
-        <label class="control-label">中继服务器</label>
-        <div class="slider-wrap">
-          <input type="range" id="derp-slider" min="1" max="5" value="2" />
-          <div class="count-box" id="derp-count">2</div>
+      <div class="control-row sliders">
+        <div class="field">
+          <label class="control-label">Headscale 节点</label>
+          <div class="slider-wrap">
+            <input type="range" id="hs-slider" min="1" max="5" value="3" />
+            <div class="count-box" id="hs-count">3</div>
+          </div>
         </div>
-        <button class="btn btn-primary" id="btn-login">开始登录</button>
+        <div class="field">
+          <label class="control-label">中继服务器</label>
+          <div class="slider-wrap">
+            <input type="range" id="derp-slider" min="1" max="5" value="2" />
+            <div class="count-box" id="derp-count">2</div>
+          </div>
+        </div>
       </div>
 
       <div class="control-row dual">

@@ -103,14 +103,34 @@ html, body {
   gap: 12px;
 }
 .control-row {
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
-  gap: 14px;
+  display: flex;
   align-items: center;
+  gap: 14px;
 }
-.control-row.dual {
+.control-row.dual,
+.control-row.sliders {
+  display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
+.control-row.login-row .btn-primary {
+  margin-left: auto;
+  min-width: 220px;
+  padding: 11px 36px;
+}
+
+/* 一组 "标签 + 滑块 + 数值" 的字段 */
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.field .slider-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
 .control-label {
   font-size: 13px;
   color: var(--muted);
@@ -144,7 +164,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 220px;
+  min-width: 160px;
 }
 
 
