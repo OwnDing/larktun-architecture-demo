@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Larktun 云雀通网络架构可视化</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- 标题 + 状态 -->
+    <header class="panel header">
+      <div class="header-left">
+        <h1>Larktun 云雀通网络架构可视化</h1>
+        <div class="subtitle" id="status-message">系统已重置</div>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">连接状态</div>
+          <div class="metric-value" id="conn-state">未连接</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">节点规模</div>
+          <div class="metric-value">
+            <span id="hs-metric">3</span> HS
+            <span class="sep">|</span>
+            <span id="derp-metric">2</span> DERP
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">活动流</div>
+          <div class="metric-value" id="flow-count">0</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 可视化区域 -->
+    <section class="panel viz">
+      <svg id="topology" viewBox="0 0 800 680" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <radialGradient id="haloGreen" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#22c55e" stop-opacity="0.45" />
+            <stop offset="100%" stop-color="#22c55e" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <g id="layer-edges"></g>
+        <g id="layer-halos"></g>
+        <g id="layer-nodes"></g>
+        <g id="layer-packets"></g>
+      </svg>
+    </section>
+
+    <!-- 控制面板 -->
+    <section class="panel controls">
+      <div class="control-row">
+        <label class="control-label">登录客户端</label>
+        <div class="seg-toggle" id="client-toggle">
+          <button class="seg active" data-client="A">A</button>
+          <button class="seg" data-client="B">B</button>
+        </div>
+        <label class="control-label">Headscale 节点</label>
+        <div class="slider-wrap">
+          <input type="range" id="hs-slider" min="1" max="5" value="3" />
+          <div class="count-box" id="hs-count">3</div>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <label class="control-label">中继服务器</label>
+        <div class="slider-wrap">
+          <input type="range" id="derp-slider" min="1" max="5" value="2" />
+          <div class="count-box" id="derp-count">2</div>
+        </div>
+        <button class="btn btn-primary" id="btn-login">开始登录</button>
+      </div>
+
+      <div class="control-row dual">
+        <button class="btn" id="btn-direct">模拟网络直连</button>
+        <button class="btn" id="btn-relay">模拟网络中继</button>
+      </div>
+
+      <div class="control-row">
+        <button class="btn wide" id="btn-reset">重置系统</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="topology.js"></script>
+  <script src="animations.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
