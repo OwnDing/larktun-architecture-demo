@@ -19,9 +19,44 @@
   const connState = $("conn-state");
   const hsMetric = $("hs-metric");
   const derpMetric = $("derp-metric");
+  const toastEl = $("toast");
+
+  let toastTimer = null;
 
   function setStatus(text) { statusMsg.textContent = text; }
   function setConnState(text) { connState.textContent = text; }
+
+  function showToast(text) {
+    if (!toastEl) return;
+    toastEl.textContent = text;
+    toastEl.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastEl.classList.remove("show");
+    }, 2200);
+  }
+
+  function pulseButton(id) {
+    const btn = $(id);
+    if (!btn) return;
+    btn.classList.remove("attention");
+    // 触发重绘，确保重复点击时动画可重新播放
+    void btn.offsetWidth;
+    btn.classList.add("attention");
+    setTimeout(() => btn.classList.remove("attention"), 1300);
+  }
+
+  function remindLoginRequired(actionName) {
+    const missingClients = ["A", "B"].filter((client) => !state.loggedIn[client]);
+    const missingText = missingClients.length === 2 ? "A 和 B" : missingClients[0];
+    const msg = `执行${actionName}前，请先登录客户端 ${missingText}`;
+    setStatus(msg);
+    setConnState("前置条件未满足");
+    showToast(msg);
+    pulseButton("btn-login");
+    pulseButton("btn-direct");
+    pulseButton("btn-relay");
+  }
 
   // --- 连线高亮 ---
   function clearEdgeHighlights() {
@@ -105,7 +140,10 @@
   }
 
   function simulateDirect() {
-    if (!bothLoggedIn()) { setStatus("请先让客户端 A 与 B 都完成登录"); return; }
+    if (!bothLoggedIn()) {
+      remindLoginRequired("模拟网络直连");
+      return;
+    }
     clearPackets(); clearEdgeHighlights();
     state.connection = "direct";
     refreshLoginHighlights();
@@ -131,7 +169,10 @@
   }
 
   function simulateRelay() {
-    if (!bothLoggedIn()) { setStatus("请先让客户端 A 与 B 都完成登录"); return; }
+    if (!bothLoggedIn()) {
+      remindLoginRequired("模拟网络中继");
+      return;
+    }
     clearPackets(); clearEdgeHighlights();
     state.connection = "relay";
     refreshLoginHighlights();
@@ -146,6 +187,8 @@
     state.loggedIn = { A: false, B: false };
     state.connection = null;
     state.busy = false;
+    if (toastTimer) clearTimeout(toastTimer);
+    if (toastEl) toastEl.classList.remove("show");
     setStatus("系统已重置");
     setConnState("未连接");
     rerender();

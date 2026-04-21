@@ -223,6 +223,11 @@ input[type="range"]::-moz-range-thumb {
   border-color: #3a456a;
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.attention {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  animation: btnPulseWarn 0.6s ease-in-out 2;
+}
 .btn.wide { width: 100%; }
 .btn-primary {
   background: var(--primary);
@@ -233,6 +238,34 @@ input[type="range"]::-moz-range-thumb {
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-2);
   border-color: var(--primary-2);
+}
+@keyframes btnPulseWarn {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 14px);
+  min-width: 240px;
+  max-width: min(86vw, 520px);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  background: rgba(15, 20, 35, 0.95);
+  color: #f8d188;
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 99;
+}
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 /* SVG node styles */
